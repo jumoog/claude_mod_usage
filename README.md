@@ -1,14 +1,14 @@
 # usage-meter
 
-A [Claude Code mod](https://claude.dev/blog/getting-started-with-claude-code-mods/) that always shows your plan usage above the prompt: the 5-hour window, the weekly window, and when the 5-hour window resets.
+A [Claude Code mod](https://claude.dev/blog/getting-started-with-claude-code-mods/) that always shows your plan usage above the prompt: the 5-hour window, the weekly window, and when each window resets.
 
 ```
-5h ███░░░░░░░ 34% · resets 15:30 (in 1h 30m)   │  week ██░░░░░░░░ 18%
+5h ███░░░░░░░ 34% · resets 15:30 (in 1h 30m)   │  week ██░░░░░░░░ 18% · resets Sun 14:00 (in 3d 0h)
 ```
 
 - **5h** and **week** each get a bar and a percentage, green below 50%, yellow from 50%, red from 80%. The empty part of the bar is dimmed.
-- **resets** is the local time the 5-hour window resets, with a countdown that refreshes every 30 seconds.
-- Under 70 columns it compacts to `5h 34% · ↻ 15:30 │ week 18%`.
+- **resets** is the local time each window resets, with a countdown that refreshes every 30 seconds. Resets after today get the weekday.
+- Under 105 columns the resets shorten to `↻ 15:30` and `↻ Sun 14:00`; under 70 the bars go too: `5h 34% · ↻ 15:30 │ week 18% · ↻ Sun 14:00`.
 - Until the first response of a session it shows `usage: waiting for the first response…`, since the numbers arrive with each response.
 
 It works in the terminal and in the Claude desktop app's Code tab.

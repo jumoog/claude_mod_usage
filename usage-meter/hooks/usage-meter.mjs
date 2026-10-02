@@ -1,9 +1,10 @@
 // Usage Meter: your 5-hour and weekly plan usage, always above the prompt,
-// with the time the 5-hour window resets.
+// with the time each window resets.
 
 const WIDTH = 10;
 const TICK_MS = 30_000;
 const LABELS = { five_hour: "5h", seven_day: "week" };
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const snapshot = { plugin: "usage-meter", key: "snapshot" };
 
@@ -59,12 +60,13 @@ async function save($, rateLimits) {
 }
 
 function band(Box, Text, value, columns) {
-  const hour = value?.limits?.five_hour;
-  const week = value?.limits?.seven_day;
+  const limits = value?.limits ?? {};
   // The desktop app lays the band out itself and may not pass a column count.
   const roomy = columns === undefined || columns >= 70;
+  // Spelled-out resets with countdowns for both windows need about 105 columns.
+  const verbose = columns === undefined || columns >= 105;
 
-  if (!hour && !week) {
+  if (!limits.five_hour && !limits.seven_day) {
     return Box({
       paddingX: 1,
       children: [Text({ dimColor: true, children: "usage: waiting for the first response…" })],
@@ -72,14 +74,13 @@ function band(Box, Text, value, columns) {
   }
 
   const parts = [];
-  if (hour) {
-    parts.push(...meter(Text, LABELS.five_hour, hour.percent, roomy));
-    const reset = resetText(hour.resetsAt, value.now, roomy);
-    if (reset) parts.push(Text({ dimColor: true, children: reset }));
-  }
-  if (week) {
+  for (const kind of Object.keys(LABELS)) {
+    const limit = limits[kind];
+    if (!limit) continue;
     if (parts.length) parts.push(Text({ dimColor: true, children: "   │  " }));
-    parts.push(...meter(Text, LABELS.seven_day, week.percent, roomy));
+    parts.push(...meter(Text, LABELS[kind], limit.percent, roomy));
+    const reset = resetText(limit.resetsAt, value.now, verbose);
+    if (reset) parts.push(Text({ dimColor: true, children: reset }));
   }
   return Box({ flexDirection: "row", paddingX: 1, children: parts });
 }
@@ -96,13 +97,19 @@ function meter(Text, label, percent, roomy) {
   return parts;
 }
 
-function resetText(resetsAt, now, roomy) {
+function resetText(resetsAt, now, verbose) {
   const at = Date.parse(resetsAt);
   if (!Number.isFinite(at)) return "";
   const left = at - now;
   if (left <= 0) return " · resetting…";
-  const clock = hhmm(new Date(at));
-  return roomy ? ` · resets ${clock} (in ${duration(left)})` : ` · ↻ ${clock}`;
+  const clock = when(new Date(at), new Date(now));
+  return verbose ? ` · resets ${clock} (in ${duration(left)})` : ` · ↻ ${clock}`;
+}
+
+// A bare time for today; anything later also gets the weekday.
+function when(d, today) {
+  const sameDay = d.toDateString() === today.toDateString();
+  return sameDay ? hhmm(d) : `${DAYS[d.getDay()]} ${hhmm(d)}`;
 }
 
 function hhmm(d) {
@@ -111,8 +118,10 @@ function hhmm(d) {
 
 function duration(ms) {
   const mins = Math.max(1, Math.ceil(ms / 60_000));
-  const h = Math.floor(mins / 60);
+  const days = Math.floor(mins / 1440);
+  const h = Math.floor(mins / 60) % 24;
   const m = mins % 60;
+  if (days) return `${days}d ${h}h`;
   return h ? `${h}h ${m}m` : `${m}m`;
 }
 

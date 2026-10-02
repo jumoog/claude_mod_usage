@@ -4,7 +4,7 @@ Notes for coding agents working on this repo. See [README.md](README.md) for wha
 
 ## What this is
 
-A Claude Code mod (a plugin of function hooks) that draws a usage band above the prompt: 5-hour usage, weekly usage, and the 5-hour reset time. The repo root is a plugin marketplace named `usage`; the plugin itself lives in `usage-meter/`.
+A Claude Code mod (a plugin of function hooks) that draws a usage band above the prompt: 5-hour usage, weekly usage, and when each window resets. The repo root is a plugin marketplace named `usage`; the plugin itself lives in `usage-meter/`.
 
 ## Commands
 

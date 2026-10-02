@@ -19,7 +19,7 @@ async function mountBand($: any, bodyColumns = 120) {
 }
 
 describe("usage-meter", () => {
-  test("shows 5-hour and weekly usage with the 5-hour reset", async ($, on) => {
+  test("shows 5-hour and weekly usage with both resets", async ($, on) => {
     let rateLimits = limits(34, 18);
     on("session.start", ($, e) => ({ cwd: e.cwd }));
     on("session.usage", () => ({
@@ -34,7 +34,8 @@ describe("usage-meter", () => {
     expect(await ui.find({ type: "Text", text: /^34%$/ })).toBeDefined();
     expect(await ui.find({ type: "Text", text: /^week/ })).toBeDefined();
     expect(await ui.find({ type: "Text", text: /^18%$/ })).toBeDefined();
-    expect(await ui.find({ type: "Text", text: /resets \d\d:\d\d \(in 1h 30m\)/ })).toBeDefined();
+    expect(await ui.find({ type: "Text", text: /resets (\w{3} )?\d\d:\d\d \(in 1h 30m\)/ })).toBeDefined();
+    expect(await ui.find({ type: "Text", text: /resets \w{3} \d\d:\d\d \(in 3d 0h\)/ })).toBeDefined();
     // 34% of 10 cells: 3 filled in color, 7 empty and dimmed.
     expect(await ui.find({ type: "Text", text: /^███$/ })).toBeDefined();
     expect(await ui.find({ type: "Text", text: /^░{7} $/, props: { dimColor: true } })).toBeDefined();
@@ -75,7 +76,23 @@ describe("usage-meter", () => {
     } as any);
     expect(await ui.find({ type: "Text", text: /^42%$/ })).toBeDefined();
     expect(await ui.find({ type: "Text", text: /^12%$/ })).toBeDefined();
-    expect(await ui.find({ type: "Text", text: /resets \d\d:\d\d \(in 1h 30m\)/ })).toBeDefined();
+    expect(await ui.find({ type: "Text", text: /resets \w{3} \d\d:\d\d \(in 3d 0h\)/ })).toBeDefined();
+    expect(await ui.find({ type: "Text", text: /resets (\w{3} )?\d\d:\d\d \(in 1h 30m\)/ })).toBeDefined();
+    await ui.unmount();
+  });
+
+  test("keeps the bars but shortens resets on medium terminals", async ($, on) => {
+    on("session.start", ($, e) => ({ cwd: e.cwd }));
+    on("session.usage", () => ({
+      value: { startedAt: 0, rateLimits: limits(34, 18), context: { window: 200_000 } },
+    }));
+    on("clock.now", () => ({ value: NOW }));
+
+    await $.session.start({ surface: "terminal", isInteractive: true, cwd: "/work" } as any);
+    const ui = await mountBand($, 80);
+    expect(await ui.find({ type: "Text", text: /^███$/ })).toBeDefined();
+    expect(await ui.find({ type: "Text", text: /^ · ↻ \w{3} \d\d:\d\d$/ })).toBeDefined();
+    expect(await ui.find({ type: "Text", text: /resets/ })).toBeUndefined();
     await ui.unmount();
   });
 
@@ -88,7 +105,8 @@ describe("usage-meter", () => {
 
     await $.session.start({ surface: "terminal", isInteractive: true, cwd: "/work" } as any);
     const ui = await mountBand($, 50);
-    expect(await ui.find({ type: "Text", text: /↻ \d\d:\d\d/ })).toBeDefined();
+    expect(await ui.find({ type: "Text", text: /↻ (\w{3} )?\d\d:\d\d/ })).toBeDefined();
+    expect(await ui.find({ type: "Text", text: /^ · ↻ \w{3} \d\d:\d\d$/ })).toBeDefined();
     await ui.unmount();
   });
 });
